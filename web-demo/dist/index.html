@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CityWag Smart Cabin 0.1</title>
+    <script type="module" crossorigin src="./assets/index-BjL956xl.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-PciicD8n.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      if (window.location.protocol === 'file:') {
+        const data = {
+          temp: 24.6,
+          humidity: 52,
+          motionLevel: 0.18,
+          bumpLevel: 0.12,
+          comfortScore: 96,
+          petStatus: 'calm',
+          riskLevel: 'normal',
+          message: 'Cabin environment looks comfortable.',
+          timestamp: Math.floor(Date.now() / 1000),
+        };
+
+        const scenarios = [
+          {
+            temp: 24.6,
+            humidity: 52,
+            motionLevel: 0.18,
+            bumpLevel: 0.12,
+            comfortScore: 96,
+            petStatus: 'calm',
+            riskLevel: 'normal',
+            message: 'Cabin environment looks comfortable.',
+          },
+          {
+            temp: 31.2,
+            humidity: 67,
+            motionLevel: 0.42,
+            bumpLevel: 0.32,
+            comfortScore: 66,
+            petStatus: 'active',
+            riskLevel: 'warning',
+            message: 'Cabin temperature is getting high. Please check ventilation.',
+          },
+          {
+            temp: 35.4,
+            humidity: 78,
+            motionLevel: 0.72,
+            bumpLevel: 0.64,
+            comfortScore: 38,
+            petStatus: 'anxious',
+            riskLevel: 'danger',
+            message: 'Cabin temperature may be unsafe. Please take action immediately.',
+          },
+        ];
+
+        let active = false;
+        let tick = 0;
+        let timer = null;
+
+        const styles = document.createElement('style');
+        styles.textContent = `
+          :root {
+            color-scheme: light;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #101010;
+            background: #f6f4ef;
+          }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            min-width: 320px;
+            min-height: 100vh;
+            background: linear-gradient(180deg, #fffdfa, #f6f4ef);
+          }
+          .offline-shell {
+            width: min(1120px, calc(100vw - 40px));
+            margin: 0 auto;
+            padding: 28px 0 48px;
+          }
+          .nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            min-height: 76px;
+          }
+          .logo {
+            width: 176px;
+            mix-blend-mode: multiply;
+          }
+          .pill {
+            border: 1px solid rgba(16, 16, 16, 0.14);
+            border-radius: 999px;
+            padding: 9px 14px;
+            background: rgba(255,255,255,0.72);
+            color: #4d4d49;
+            white-space: nowrap;
+          }
+          .hero {
+            padding: 70px 0 46px;
+          }
+          .badge {
+            display: inline-flex;
+            border: 1px solid rgba(16, 16, 16, 0.14);
+            border-radius: 999px;
+            padding: 7px 12px;
+            margin-right: 8px;
+            color: #4d4d49;
+            background: rgba(255,255,255,0.7);
+            font-size: 13px;
+          }
+          h1 {
+            margin: 24px 0 0;
+            max-width: 880px;
+            font-size: clamp(4rem, 11vw, 8.2rem);
+            line-height: 0.88;
+            font-weight: 650;
+            letter-spacing: 0;
+          }
+          .subtitle {
+            max-width: 730px;
+            margin: 28px 0 0;
+            color: #4d4d49;
+            font-size: clamp(1.25rem, 2.8vw, 2rem);
+            line-height: 1.18;
+          }
+          .line {
+            max-width: 680px;
+            margin: 18px 0 0;
+            color: #77736c;
+            font-size: 1.06rem;
+            line-height: 1.55;
+          }
+          .status {
+            display: grid;
+            grid-template-columns: minmax(260px, 0.88fr) minmax(320px, 1.12fr);
+            gap: 1px;
+            overflow: hidden;
+            border: 1px solid rgba(16,16,16,0.12);
+            border-radius: 8px;
+            background: rgba(16,16,16,0.12);
+          }
+          .panel {
+            min-height: 330px;
+            padding: clamp(24px, 4vw, 42px);
+            background: #fff;
+          }
+          .score {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+          }
+          .eyebrow {
+            margin: 0;
+            color: #77736c;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0;
+          }
+          .score strong {
+            margin-top: 18px;
+            font-size: clamp(6rem, 18vw, 12rem);
+            line-height: 0.78;
+            font-weight: 620;
+          }
+          .status h2 {
+            margin: 12px 0 0;
+            font-size: clamp(2.4rem, 6vw, 5rem);
+            line-height: 0.94;
+            font-weight: 620;
+          }
+          .message {
+            margin: 64px 0 0;
+            color: #4d4d49;
+            font-size: clamp(1.2rem, 2.6vw, 2rem);
+            line-height: 1.2;
+          }
+          .normal strong, .normal h2 { color: #49675b; }
+          .warning strong, .warning h2 { color: #a86f19; }
+          .danger strong, .danger h2 { color: #b74438; }
+          .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 8px;
+            margin: 14px 0 64px;
+          }
+          button {
+            min-height: 40px;
+            padding: 0 15px;
+            border: 1px solid rgba(16,16,16,0.12);
+            border-radius: 999px;
+            background: rgba(255,255,255,0.78);
+            color: #101010;
+            cursor: pointer;
+            font: inherit;
+          }
+          .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+          }
+          .card {
+            min-height: 150px;
+            padding: 20px;
+            border: 1px solid rgba(16,16,16,0.12);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.66);
+          }
+          .card span {
+            color: #77736c;
+            font-size: 14px;
+          }
+          .card strong {
+            display: block;
+            margin-top: 38px;
+            font-size: clamp(2rem, 5vw, 3.1rem);
+            line-height: 0.95;
+            text-transform: capitalize;
+          }
+          .note {
+            margin-top: 34px;
+            padding: 18px;
+            border: 1px solid rgba(16,16,16,0.12);
+            border-radius: 8px;
+            color: #4d4d49;
+            background: rgba(255,255,255,0.62);
+            line-height: 1.55;
+          }
+          @media (max-width: 820px) {
+            .status, .grid { grid-template-columns: 1fr; }
+            .nav { align-items: flex-start; flex-direction: column; }
+            .logo { width: 142px; }
+            .toolbar { justify-content: flex-start; }
+            button, .pill { width: 100%; }
+          }
+        `;
+        document.head.appendChild(styles);
+
+        const root = document.getElementById('root');
+        const statusLabel = (riskLevel) => ({
+          normal: 'Comfortable',
+          warning: 'Attention Needed',
+          danger: 'Take Action',
+        }[riskLevel] || 'Check Module');
+
+        function render(packet) {
+          root.innerHTML = `
+            <main class="offline-shell">
+              <nav class="nav">
+                <img class="logo" src="public/citywag-logo.png" alt="CityWag logo" />
+                <span class="pill">${active ? 'Mock Demo' : 'Offline preview'}</span>
+              </nav>
+              <section class="hero">
+                <span class="badge">Prototype 0.1</span>
+                <span class="badge">Double-click Preview</span>
+                <h1>CityWag Smart Cabin</h1>
+                <p class="subtitle">A smart in-car pet cabin prototype for safer and more comfortable pet mobility.</p>
+                <p class="line">See the cabin environment. Understand the ride. Travel with more peace of mind.</p>
+              </section>
+              <section class="status ${packet.riskLevel}">
+                <div class="panel score">
+                  <p class="eyebrow">Comfort Score</p>
+                  <strong>${Math.round(packet.comfortScore)}</strong>
+                  <span>out of 100</span>
+                </div>
+                <div class="panel">
+                  <p class="eyebrow">Cabin Status</p>
+                  <h2>${statusLabel(packet.riskLevel)}</h2>
+                  <p class="message">${packet.message}</p>
+                </div>
+              </section>
+              <section class="toolbar">
+                <button id="start-demo">${active ? 'Demo Mode Running' : 'Start Demo Mode'}</button>
+                <button id="stop-demo">Stop Demo Mode</button>
+              </section>
+              <section class="grid">
+                <article class="card"><span>Temperature</span><strong>${packet.temp.toFixed(1)}°C</strong></article>
+                <article class="card"><span>Humidity</span><strong>${Math.round(packet.humidity)}%</strong></article>
+                <article class="card"><span>Motion Level</span><strong>${Math.round(packet.motionLevel * 100)}%</strong></article>
+                <article class="card"><span>Bump Level</span><strong>${Math.round(packet.bumpLevel * 100)}%</strong></article>
+                <article class="card"><span>Risk Level</span><strong>${packet.riskLevel}</strong></article>
+                <article class="card"><span>Pet Status</span><strong>${packet.petStatus}</strong></article>
+              </section>
+              <section class="note">
+                This is the direct double-click preview. For the full React + BLE experience, open this folder in a terminal and run <strong>npm run dev</strong>, then open the local Vite URL in Chrome or Edge.
+              </section>
+            </main>
+          `;
+
+          document.getElementById('start-demo').onclick = startDemo;
+          document.getElementById('stop-demo').onclick = stopDemo;
+        }
+
+        function nextPacket() {
+          const base = scenarios[Math.floor(tick / 8) % scenarios.length];
+          tick += 1;
+          return {
+            ...base,
+            temp: Number((base.temp + Math.sin(Date.now() / 700) * 0.4).toFixed(1)),
+            humidity: Math.round(base.humidity + Math.sin(Date.now() / 900) * 3),
+            motionLevel: Number(Math.max(0, Math.min(1, base.motionLevel + Math.sin(Date.now() / 650) * 0.05)).toFixed(2)),
+            bumpLevel: Number(Math.max(0, Math.min(1, base.bumpLevel + Math.sin(Date.now() / 720) * 0.04)).toFixed(2)),
+            timestamp: Math.floor(Date.now() / 1000),
+          };
+        }
+
+        function startDemo() {
+          if (timer) return;
+          active = true;
+          render(nextPacket());
+          timer = window.setInterval(() => render(nextPacket()), 1000);
+        }
+
+        function stopDemo() {
+          if (timer) window.clearInterval(timer);
+          timer = null;
+          active = false;
+          render(data);
+        }
+
+        render(data);
+      }
+    </script>
+  </body>
+</html>

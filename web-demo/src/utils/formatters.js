@@ -23,4 +23,3 @@ export function formatUpdatedTime(timestamp) {
     second: '2-digit',
   });
 }
-
